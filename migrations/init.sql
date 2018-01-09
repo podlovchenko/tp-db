@@ -58,7 +58,6 @@ CREATE TABLE IF NOT EXISTS forumUsers (
     UNIQUE (forum_id, user_id)
 );
 
-CREATE INDEX thread_forum_id ON threadForum (forum_id);
 CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
 CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
 CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
