@@ -1,0 +1,23 @@
+{
+  "name": "db",
+  "version": "0.0.0",
+  "keywords": [],
+  "author": "podvb",
+  "license": "ISC",
+  "scripts": {
+    "start": "babel-node server.js --presets env",
+    "dev": "nodemon server.js --exec babel-node --presets env"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "body-parser": "^1.18.2",
+    "express": "~4.15.5",
+    "pg-promise": "^6.10.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "live-migration": "0.0.7",
+    "nodemon": "^1.12.1"
+  }
+}
