@@ -24,8 +24,8 @@ router.get('/:id/details', async (req, res) => {
           switch (req.query.related[i]) {
             case ('user'):
               table = 'userForum';
-              field = 'id';
-              value = post.author_id;
+              field = 'nickname';
+              value = post.author;
               break;
             case ('forum'):
               table = 'Forum';
@@ -60,7 +60,6 @@ router.get('/:id/details', async (req, res) => {
         }
       }
     }
-
 
     res.status(200).json(answer);
   } catch (error) {

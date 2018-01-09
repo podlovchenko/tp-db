@@ -32,8 +32,7 @@ CREATE TABLE IF NOT EXISTS threadForum (
 );
 
 CREATE TABLE IF NOT EXISTS postForum (
-    author      citext NOT NULL,
-    author_id   integer REFERENCES userForum (id),
+    author      citext NOT NULL REFERENCES userForum (nickname),
     created     timestamptz DEFAULT now(),
     forum       citext,
     forum_id    integer REFERENCES Forum (id),
@@ -59,11 +58,13 @@ CREATE TABLE IF NOT EXISTS forumUsers (
 );
 
 CREATE INDEX thread_forum_id ON threadForum (forum_id);
-CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
-CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
-CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
-CREATE INDEX post_thread_id ON postForum (thread, id);
-
-CREATE INDEX thread_forum_id ON threadForum (forum_id);
 CREATE INDEX post_thread ON postForum (thread);
 CREATE INDEX post_thread_path ON postForum (thread, path);
+
+--- CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
+--- CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
+--- CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
+--- CREATE INDEX post_thread_id ON postForum (thread, id);
+--- CREATE INDEX post_thread_path_desc ON postForum (thread, path DESC);
+--- CREATE INDEX post_parent_thread_id ON postForum (parent, thread, id);
+--- CREATE INDEX post_path_thread ON postForum (path, thread);
