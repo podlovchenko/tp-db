@@ -125,33 +125,36 @@ router.post('/:slug_or_id/details', async (req, res) => {
 });
 
 router.get('/:slug_or_id/posts', async (req, res) => {
-    const field = isNaN(req.params.slug_or_id) ? 'slug' : 't.id';
+    const field = isNaN(req.params.slug_or_id) ? 'slug' : 'id';
 
     const limit = req.query.limit || 'ALL';
     const orderBy = req.query.desc === 'true' ? 'DESC ' : '';
     const sign = req.query.desc === 'true' ? '<' : '>';
     const since = req.query.since ? `AND id${sign}\${since} ` : '';
 
-    const sql = req.query.since ? ` JOIN postForum p ON p.id=\${since}` : '';
-    const values = req.query.since ? `t.id as id, p.path as path` : '*';
-
     try {
-      const thread = await db.one(`SELECT ${values} FROM threadForum t${sql} WHERE ${field}=\${slug_or_id}`, Object.assign({}, req.params, req.query));
+      const thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
 
       if (req.query.sort) {
         switch (req.query.sort) {
           case('tree'):
-            const tree = req.query.since ? `AND path${sign}\${path} ` : '';
+            const tree = req.query.since ? `AND path${sign}(SELECT path FROM postForum WHERE id=$2) ` : '';
 
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=\${id} ${tree} ORDER BY path ${orderBy}LIMIT ${limit}`,
-                Object.assign({}, req.params, req.query, thread)));
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${tree}ORDER BY path ${orderBy}LIMIT ${limit}`,
+                [thread.id, req.query.since]));
             } catch (error) {
               res.status(200).json([]);
             }
             break;
           case('parent_tree'):
-            const parent_tree = req.query.since ? `AND id${sign}${thread.path[0]} ` : '';
+            let post;
+            let parent_tree = '';
+            if (req.query.since) {
+              post = await db.one('SELECT path FROM postForum WHERE id=$1', req.query.since);
+
+              parent_tree = `AND id${sign}${post.path[0]} `;
+            }
 
             try {
               res.status(200).json(await db.many(`SELECT * FROM postForum WHERE path[1] IN (SELECT id FROM postForum WHERE parent=0 AND thread=\${id} ${parent_tree} ORDER BY id ${orderBy} LIMIT ${limit}) AND thread=\${id} ORDER BY path[1] ${orderBy}, path ${orderBy}`,
