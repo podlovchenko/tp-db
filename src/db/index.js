@@ -6,6 +6,6 @@ const options = {
 
 const pgp = require('pg-promise')(options);
 
-const db = pgp('postgres://postgres:root@localhost:5432/forum');
+const db = pgp('postgres://docker:docker@localhost:5432/docker');
 
 module.exports = db;

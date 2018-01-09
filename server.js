@@ -2,9 +2,9 @@ const config = {
   type: "postgres",
   host: "127.0.0.1",
   port: "5432",
-  name: "forum",
-  user: "postgres",
-  password: "root",
+  name: "docker",
+  user: "docker",
+  password: "docker",
   migrations_dir: "./migrations"
 };
 
