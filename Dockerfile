@@ -28,6 +28,8 @@ RUN echo "full_page_writes = off" >>  /etc/postgresql/$PGVER/main/postgresql.con
 RUN echo "autovacuum = off" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "shared_buffers = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "wal_buffers = 4MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "work_mem = 32MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 
