@@ -62,6 +62,7 @@ CREATE INDEX thread_forum_id ON threadForum (forum_id);
 CREATE INDEX post_thread_path ON postForum (thread, path);
 CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
 CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
+CREATE INDEX post_thread_path_1_desc ON postForum (thread, (path[1]) DESC);
 CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
 CREATE INDEX post_thread_id ON postForum (thread, id);
 CREATE INDEX post_thread_path_desc ON postForum (thread, path DESC);
