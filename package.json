@@ -5,7 +5,7 @@
   "author": "podvb",
   "license": "ISC",
   "scripts": {
-    "start": "babel-node server.js --presets env",
+    "start": "babel-node --max-old-space-size=500 server.js --presets env",
     "dev": "nodemon server.js --exec babel-node --presets env"
   },
   "dependencies": {
