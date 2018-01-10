@@ -57,15 +57,15 @@ CREATE TABLE IF NOT EXISTS forumUsers (
     UNIQUE (forum_id, user_id)
 );
 
-CREATE INDEX thread_forum_id_created ON threadForum (forum_id, created);
-CREATE INDEX post_thread_id ON postForum (thread, id);
+CREATE INDEX thread_forum_id_created ON threadForum (forum_id);
+CREATE INDEX post_thread ON postForum (thread);
 CREATE INDEX post_thread_path ON postForum (thread, path);
 
---CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
---CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
+CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
+CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
 --CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
 --CREATE INDEX post_thread_id ON postForum (thread, id);
 --CREATE INDEX post_thread_id ON postForum (thread, id DESC);
 --CREATE INDEX post_thread_path_desc ON postForum (thread, path DESC);
---CREATE INDEX post_parent_thread_id ON postForum (parent, thread, id);
+CREATE INDEX post_parent_thread_id ON postForum (parent, thread, id);
 --CREATE INDEX post_path_thread ON postForum (path, thread);
