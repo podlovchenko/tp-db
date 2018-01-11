@@ -12,6 +12,7 @@ router.post('/clear', async (req, res) => {
     db.none('TRUNCATE userForum CASCADE'),
     db.none('TRUNCATE Votes CASCADE'),
     db.none('TRUNCATE forumUsers CASCADE'),
+    db.none('TRUNCATE postThread CASCADE'),
   ]));
 
   res.status(200).send();

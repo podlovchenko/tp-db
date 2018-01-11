@@ -25,38 +25,27 @@ router.post('/:slug_or_id/create', async (req, res) => {
         let path;
         let parent;
 
-        for (let i = 0; i < req.body.length; i++) {
+        for (let i = 0, j = 0; i < req.body.length; i++) {
           id = Number(ids[i].nextval);
 
           users[req.body[i].author] = true;
 
           if (!req.body[i].parent || req.body[i].parent === 0) {
-            queries.push(t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, 0, thread.id]));
+            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, 0, thread.id]);
+            queries[req.body.length + j] = t.none('INSERT INTO postThread (post_id, thread_id) values($1, $2)', [id, thread.id]);
+            j++;
           } else {
             parent = await db.one('SELECT path FROM postForum WHERE id=$1 AND thread=$2', [req.body[i].parent, thread.id]);
             path = parent.path;
 
-            queries.push(t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append($2, $3::INT), $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-              [id, path, id, req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]));
+            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append($2, $3::INT), $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+              [id, path, id, req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
           }
         }
 
         return t.batch(queries);
       });
-
-
-      // try {
-      //   await db.tx(async (t) => {
-      //     const queries = [];
-      //
-      //     for (let i = 0; i < users.length; i++) {
-      //       queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) values($1, $2) ON CONFLICT DO NOTHING', [users[i], thread.forum_id]));
-      //     }
-      //
-      //     return t.batch(queries);
-      //   });
-      // } catch (error) {}
 
       for (let user in users) {
         await db.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]);
@@ -64,7 +53,7 @@ router.post('/:slug_or_id/create', async (req, res) => {
 
       await db.none('UPDATE Forum SET posts=posts+$1 WHERE id=$2', [req.body.length, thread.forum_id]);
 
-      res.status(201).json(answer);
+      res.status(201).json(answer.slice(0, req.body.length));
     } catch (error) {
       if (error.data && error.data[0].result.code === '23503') {
         res.status(404).json({
@@ -128,12 +117,12 @@ router.get('/:slug_or_id/posts', async (req, res) => {
     const field = isNaN(req.params.slug_or_id) ? 'slug' : 'id';
 
     const limit = req.query.limit || 'ALL';
-    const orderBy = req.query.desc === 'true' ? 'DESC ' : '';
+    const orderBy = req.query.desc === 'true' ? ' DESC' : '';
     const sign = req.query.desc === 'true' ? '<' : '>';
-    const since = req.query.since ? `AND id${sign}\${since} ` : '';
+    const since = req.query.since ? `AND id${sign}${req.query.since} ` : '';
 
     try {
-      const thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
+      const thread = await db.one(`SELECT id FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
 
       if (req.query.sort) {
         switch (req.query.sort) {
@@ -141,7 +130,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
             const tree = req.query.since ? `AND path${sign}(SELECT path FROM postForum WHERE id=$2) ` : '';
 
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${tree}ORDER BY path ${orderBy}LIMIT ${limit}`,
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${tree}ORDER BY path${orderBy} LIMIT ${limit}`,
                 [thread.id, req.query.since]));
             } catch (error) {
               res.status(200).json([]);
@@ -152,21 +141,20 @@ router.get('/:slug_or_id/posts', async (req, res) => {
             let parent_tree = '';
             if (req.query.since) {
               post = await db.one('SELECT path FROM postForum WHERE id=$1', req.query.since);
-
-              parent_tree = `AND id${sign}${post.path[0]} `;
+              parent_tree = `AND post_id${sign}${post.path[0]} `;
             }
 
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE path[1] IN (SELECT id FROM postForum WHERE parent=0 AND thread=\${id} ${parent_tree} ORDER BY id ${orderBy} LIMIT ${limit}) AND thread=\${id} ORDER BY path[1] ${orderBy}, path ${orderBy}`,
-                Object.assign({}, req.params, req.query, thread)));
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 AND path[1] IN (SELECT post_id FROM postThread WHERE thread_id=$1 ${parent_tree}ORDER BY post_id${orderBy} LIMIT ${limit}) ORDER BY path${orderBy}`,
+                thread.id));
             } catch (error) {
               res.status(200).json([]);
             }
             break;
           default:
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=\${id} ${since}ORDER BY id ${orderBy}LIMIT ${limit}`,
-                Object.assign({}, req.params, req.query, thread)));
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
+                thread.id));
             } catch (error) {
               res.status(200).json([]);
             }
@@ -174,8 +162,8 @@ router.get('/:slug_or_id/posts', async (req, res) => {
         }
       } else {
         try {
-          res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=\${id} ${since}ORDER BY id ${orderBy}LIMIT ${limit}`,
-            Object.assign({}, req.params, req.query, thread)));
+          res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
+            thread.id));
         } catch (error) {
           res.status(200).json([]);
         }

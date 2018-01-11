@@ -5,19 +5,22 @@
   "author": "podvb",
   "license": "ISC",
   "scripts": {
-    "start": "babel-node --max-old-space-size=500 server.js --presets env",
-    "dev": "nodemon server.js --exec babel-node --presets env"
+    "start": "npm run cluster",
+    "server": "babel-node server.js --presets env",
+    "dev": "nodemon dev.js --exec babel-node --presets env",
+    "cluster": "babel-node cluster.js --presets env"
   },
   "dependencies": {
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
+    "cluster": "^0.7.7",
     "express": "~4.15.5",
+    "live-migration": "0.0.7",
+    "os": "^0.1.1",
     "pg-promise": "^6.10.2"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
-    "live-migration": "0.0.7",
-    "nodemon": "^1.12.1"
+    "babel-preset-env": "^1.6.0"
   }
 }

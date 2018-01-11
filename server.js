@@ -1,3 +1,6 @@
+const express = require('express');
+const body = require('body-parser');
+
 const config = {
   type: "postgres",
   host: "127.0.0.1",
@@ -9,9 +12,6 @@ const config = {
 };
 
 const module = require("live-migration")(config);
-
-const express = require('express');
-const body = require('body-parser');
 
 module
   .on("ready", () => {

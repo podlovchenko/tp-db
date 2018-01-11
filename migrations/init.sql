@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS userForum (
 );
 
 CREATE TABLE IF NOT EXISTS Forum (
-	id          serial PRIMARY KEY,
+    id          serial PRIMARY KEY,
     posts       integer DEFAULT 0,
     slug        citext UNIQUE,
     threads     integer DEFAULT 0,
@@ -54,18 +54,28 @@ CREATE TABLE IF NOT EXISTS Votes (
 CREATE TABLE IF NOT EXISTS forumUsers (
     user_id     integer REFERENCES userForum (id) NOT NULL,
     forum_id    integer REFERENCES Forum (id) NOT NULL,
-    UNIQUE (forum_id, user_id)
+    UNIQUE (user_id, forum_id)
 );
 
-CREATE INDEX thread_forum_id_created ON threadForum (forum_id, created);
-CREATE INDEX post_thread_id ON postForum (thread, id);
-CREATE INDEX post_thread_path ON postForum (thread, path);
+CREATE TABLE IF NOT EXISTS postThread (
+    post_id     serial PRIMARY KEY,
+    thread_id   integer NOT NULL
+);
 
---CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
---CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
---CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
---CREATE INDEX post_thread_id ON postForum (thread, id);
---CREATE INDEX post_thread_id ON postForum (thread, id DESC);
---CREATE INDEX post_thread_path_desc ON postForum (thread, path DESC);
---CREATE INDEX post_parent_thread_id ON postForum (parent, thread, id);
---CREATE INDEX post_path_thread ON postForum (path, thread);
+CREATE INDEX thread_forum_id ON threadForum (forum_id);
+CREATE INDEX post_thread_path ON postForum (thread, path);
+CREATE INDEX thread_post ON postThread (thread_id, post_id);
+CREATE INDEX post_thread_id ON postForum (thread, id);
+CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
+CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
+CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
+
+-- CREATE INDEX post_id_path ON postForum (id, path);
+-- CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
+-- CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
+-- CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
+-- CREATE INDEX post_thread_id ON postForum (thread, id);
+-- CREATE INDEX post_thread_id ON postForum (thread, id DESC);
+-- CREATE INDEX post_thread_path_desc ON postForum (thread, path DESC);
+-- CREATE INDEX post_parent_thread_id ON postForum (parent, thread, id);
+-- CREATE INDEX post_path_thread ON postForum (path, thread);
