@@ -1,3 +1,5 @@
+const PS = require('pg-promise').PreparedStatement;
+
 const express = require('express');
 const router = express.Router();
 
@@ -41,16 +43,19 @@ router.post('/:slug_or_id/create', async (req, res) => {
 
           let id;
 
+          const addPost = new PS('add-post', 'INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append((SELECT path FROM postForum WHERE id=$7), $1::INT), $2, $3, $4, $5, $6, $7, $8) RETURNING *');
+          const addPostThread = new PS('add-post-thread', 'INSERT INTO postThread (post_id, thread_id) values($1, $2)');
+
           for (let i = 0, j = 0; i < req.body.length; i++) {
             id = Number(ids[i].nextval);
 
             users[req.body[i].author] = true;
 
-            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append((SELECT path FROM postForum WHERE id=$8), $1::INT), $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
+            queries[i] = t.one(addPost,
+              [id, req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
 
             if (!req.body[i].parent || req.body[i].parent === 0) {
-              queries[req.body.length + j] = t.none('INSERT INTO postThread (post_id, thread_id) values($1, $2)', [id, thread.id]);
+              queries[req.body.length + j] = t.none(addPostThread, [id, thread.id]);
               j++;
             }
           }
@@ -62,8 +67,10 @@ router.post('/:slug_or_id/create', async (req, res) => {
           await db.tx(async (t) => {
             const queries = [];
 
+            const addUserForum = new PS('add-user-forum', 'INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING');
+
             for (let user in users) {
-              queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]));
+              queries.push(t.none(addUserForum, [user, thread.forum_id]));
             }
 
             return t.batch(queries);
