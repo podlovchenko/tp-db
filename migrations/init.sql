@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS postThread (
 CREATE INDEX thread_forum_id ON threadForum (forum_id);
 CREATE INDEX post_thread_path ON postForum (thread, path);
 CREATE INDEX thread_post ON postThread (thread_id, post_id);
+CREATE INDEX post ON postThread (post_id);
 CREATE INDEX post_thread_id ON postForum (thread, id);
 CREATE INDEX user_nickname ON userForum (nickname);
 --CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
