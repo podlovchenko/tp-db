@@ -32,7 +32,6 @@ router.post('/:slug_or_id/create', async (req, res) => {
       }
 
       if (flag === false) {
-        console.log('error')
         throw 'error';
       }
 
