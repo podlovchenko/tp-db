@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS Votes (
 );
 
 CREATE TABLE IF NOT EXISTS forumUsers (
-    user_id     integer REFERENCES userForum (id) NOT NULL,
-    forum_id    integer REFERENCES Forum (id) NOT NULL,
+    user_id     integer,
+    forum_id    integer,
     UNIQUE (user_id, forum_id)
 );
 
