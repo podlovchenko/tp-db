@@ -47,9 +47,17 @@ router.post('/:slug_or_id/create', async (req, res) => {
         return t.batch(queries);
       });
 
-      for (let user in users) {
-        await db.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]);
-      }
+      try {
+        await db.tx(async (t) => {
+          const queries = [];
+
+          for (let user in users) {
+            queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]));
+          }
+
+          return t.batch(queries);
+        });
+      } catch (error) {}
 
       await db.none('UPDATE Forum SET posts=posts+$1 WHERE id=$2', [req.body.length, thread.forum_id]);
 
