@@ -7,76 +7,109 @@ router.post('/:slug_or_id/create', async (req, res) => {
   const field = isNaN(req.params.slug_or_id) ? 'slug' : 'id';
   const created = new Date();
 
+  let flag = false;
+
   let ids = [];
   if (req.body.length) {
     ids = await db.many('SELECT nextval(\'postforum_id_seq\') from generate_series(1, $1)', [req.body.length]);
-  }
 
-  const users = {};
-
-  try {
-    const thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
+    const users = {};
 
     try {
-      const answer = await db.tx(async (t) => {
-        const queries = [];
-
-        let id;
-        let path;
-        let parent;
-
-        for (let i = 0, j = 0; i < req.body.length; i++) {
-          id = Number(ids[i].nextval);
-
-          users[req.body[i].author] = true;
-
-          if (!req.body[i].parent || req.body[i].parent === 0) {
-            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, 0, thread.id]);
-            queries[req.body.length + j] = t.none('INSERT INTO postThread (post_id, thread_id) values($1, $2)', [id, thread.id]);
-            j++;
-          } else {
-            parent = await db.one('SELECT path FROM postForum WHERE id=$1 AND thread=$2', [req.body[i].parent, thread.id]);
-            path = parent.path;
-
-            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append($2, $3::INT), $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-              [id, path, id, req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
-          }
-        }
-
-        return t.batch(queries);
-      });
+      const thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
 
       try {
-        await db.tx(async (t) => {
+        flag = true;
+        await db.one(`SELECT * FROM postThread WHERE thread_id=$1 LIMIT 1`, thread.id);
+      } catch (error) {
+        console.log(error)
+        flag = false;
+      }
+
+      for (let i = 0; i < req.body.length; i++) {
+        if (req.body[i].parent === 0 || !req.body[i].parent) {
+          flag = true;
+        }
+      }
+
+      if (flag === false) {
+        console.log('error')
+        throw 'error';
+      }
+
+      try {
+        const answer = await db.tx(async (t) => {
           const queries = [];
 
-          for (let user in users) {
-            queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]));
+          let id;
+          let path;
+          let parent;
+
+          for (let i = 0, j = 0; i < req.body.length; i++) {
+            id = Number(ids[i].nextval);
+
+            users[req.body[i].author] = true;
+
+            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append((SELECT path FROM postForum WHERE id=$8), $1::INT), $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
+
+            if (!req.body[i].parent || req.body[i].parent === 0) {
+              queries[req.body.length + j] = t.none('INSERT INTO postThread (post_id, thread_id) values($1, $2)', [id, thread.id]);
+              j++;
+            }
           }
 
           return t.batch(queries);
         });
-      } catch (error) {}
 
-      await db.none('UPDATE Forum SET posts=posts+$1 WHERE id=$2', [req.body.length, thread.forum_id]);
+        try {
+          await db.tx(async (t) => {
+            const queries = [];
 
-      res.status(201).json(answer.slice(0, req.body.length));
+            for (let user in users) {
+              queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]));
+            }
+
+            return t.batch(queries);
+          });
+        } catch (error) {
+        }
+
+        await db.none('UPDATE Forum SET posts=posts+$1 WHERE id=$2', [req.body.length, thread.forum_id]);
+
+        res.status(201).json(answer.slice(0, req.body.length));
+      } catch (error) {
+        if (error.data && error.data[0].result.code === '23503') {
+          res.status(404).json({
+            "message": "Error!\n"
+          });
+        } else {
+          res.status(409).json({
+            "message": "Error!\n"
+          });
+        }
+      }
     } catch (error) {
-      if (error.data && error.data[0].result.code === '23503') {
-        res.status(404).json({
-          "message": "Error!\n"
-        });
-      } else {
+      if (error === 'error') {
         res.status(409).json({
-          "message": "Error!\n"
+          message: 'Error!\n',
+        });
+      }
+      else {
+        res.status(404).json({
+          message: 'Error!\n',
         });
       }
     }
-  } catch (error) {
-    res.status(404).json({
-      message: 'Error!\n',
-    });
+  } else {
+    try {
+      await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
+      res.status(201).json([]);
+    } catch (error) {
+      res.status(404).json({
+        message: 'Error!\n',
+      });
+    }
   }
 });
 
