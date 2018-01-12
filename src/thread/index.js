@@ -1,5 +1,3 @@
-const PS = require('pg-promise').PreparedStatement;
-
 const express = require('express');
 const router = express.Router();
 
@@ -9,99 +7,106 @@ router.post('/:slug_or_id/create', async (req, res) => {
   const field = isNaN(req.params.slug_or_id) ? 'slug' : 'id';
   const created = new Date();
 
-  let thread;
-  try {
-    thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, [req.params.slug_or_id]);
-  } catch (error) {
-    return res.status(404).json({
-      message: 'Error!\n',
-    });
-  }
-
-  if (!req.body.length) {
-    return res.status(201).json([]);
-  }
+  let flag = false;
 
   let ids = [];
-  const findId = new PS('id', 'SELECT nextval(\'postforum_id_seq\') from generate_series(1, $1)');
-  ids = await db.many(findId, [req.body.length]);
+  if (req.body.length) {
+    ids = await db.many('SELECT nextval(\'postforum_id_seq\') from generate_series(1, $1)', [req.body.length]);
 
-  let flag = false;
-  try {
-    flag = true;
-    const postThread = new PS('post-thread', 'SELECT * FROM postThread WHERE thread_id=$1 LIMIT 1');
+    const users = {};
 
-    await db.one(postThread, thread.id);
-  } catch (error) {
-    flag = false;
-  }
+    try {
+      const thread = await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
 
-  for (let i = 0; i < req.body.length; i++) {
-    if (req.body[i].parent === 0 || !req.body[i].parent) {
-      flag = true;
-    }
-  }
+      try {
+        flag = true;
+        await db.one(`SELECT * FROM postThread WHERE thread_id=$1 LIMIT 1`, thread.id);
+      } catch (error) {
+        flag = false;
+      }
 
-  if (flag === false) {
-    return res.status(409).json({
-      message: 'Error!\n',
-    });
-  }
-
-  const users = {};
-  let answer;
-  try {
-    answer = await db.tx(async (t) => {
-      const queries = [];
-
-      let id;
-
-      const addPost = new PS('add-post', 'INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append((SELECT path FROM postForum WHERE id=$7), $1::INT), $2, $3, $4, $5, $6, $7, $8) RETURNING *');
-      const addPostThread = new PS('add-post-thread', 'INSERT INTO postThread (post_id, thread_id) values($1, $2)');
-
-      for (let i = 0, j = 0; i < req.body.length; i++) {
-        id = Number(ids[i].nextval);
-
-        users[req.body[i].author] = true;
-
-        queries[i] = t.one(addPost,
-          [id, req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
-
-        if (!req.body[i].parent || req.body[i].parent === 0) {
-          queries[req.body.length + j] = t.none(addPostThread, [id, thread.id]);
-          j++;
+      for (let i = 0; i < req.body.length; i++) {
+        if (req.body[i].parent === 0 || !req.body[i].parent) {
+          flag = true;
         }
       }
 
-      return t.batch(queries);
-    });
-  } catch (error) {
-    if (error.data && error.data[0].result.code === '23503') {
-      return res.status(404).json({
-        "message": "Error!\n"
-      });
-    } else {
-      return res.status(409).json({
-        "message": "Error!\n"
+      if (flag === false) {
+        throw 'error';
+      }
+
+      try {
+        const answer = await db.tx(async (t) => {
+          const queries = [];
+
+          let id;
+
+          for (let i = 0, j = 0; i < req.body.length; i++) {
+            id = Number(ids[i].nextval);
+
+            users[req.body[i].author] = true;
+
+            queries[i] = t.one('INSERT INTO postForum (id, path, author, created, forum, forum_id, message, parent, thread) values($1, array_append((SELECT path FROM postForum WHERE id=$8), $1::INT), $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+              [id, [id], req.body[i].author, created, thread.forum, thread.forum_id, req.body[i].message, req.body[i].parent, thread.id]);
+
+            if (!req.body[i].parent || req.body[i].parent === 0) {
+              queries[req.body.length + j] = t.none('INSERT INTO postThread (post_id, thread_id) values($1, $2)', [id, thread.id]);
+              j++;
+            }
+          }
+
+          return t.batch(queries);
+        });
+
+        try {
+          await db.tx(async (t) => {
+            const queries = [];
+
+            for (let user in users) {
+              queries.push(t.none('INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING', [user, thread.forum_id]));
+            }
+
+            return t.batch(queries);
+          });
+        } catch (error) {
+        }
+
+        await db.none('UPDATE Forum SET posts=posts+$1 WHERE id=$2', [req.body.length, thread.forum_id]);
+
+        res.status(201).json(answer.slice(0, req.body.length));
+      } catch (error) {
+        if (error.data && error.data[0].result.code === '23503') {
+          res.status(404).json({
+            "message": "Error!\n"
+          });
+        } else {
+          res.status(409).json({
+            "message": "Error!\n"
+          });
+        }
+      }
+    } catch (error) {
+      if (error === 'error') {
+        res.status(409).json({
+          message: 'Error!\n',
+        });
+      }
+      else {
+        res.status(404).json({
+          message: 'Error!\n',
+        });
+      }
+    }
+  } else {
+    try {
+      await db.one(`SELECT * FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
+      res.status(201).json([]);
+    } catch (error) {
+      res.status(404).json({
+        message: 'Error!\n',
       });
     }
   }
-
-  await db.tx(async (t) => {
-    const queries = [];
-
-    const addUserForum = new PS('add-user-forum', 'INSERT INTO forumUsers (user_id, forum_id) VALUES ((SELECT id FROM userForum WHERE nickname=$1), $2) ON CONFLICT (user_id, forum_id) DO NOTHING');
-    for (let user in users) {
-      queries.push(t.none(addUserForum, [user, thread.forum_id]));
-    }
-
-    return t.batch(queries);
-  });
-
-  const updateForum = new PS('update-forum', 'UPDATE Forum SET posts=posts+$1 WHERE id=$2');
-  await db.none(updateForum, [req.body.length, thread.forum_id]);
-
-  res.status(201).json(answer.slice(0, req.body.length));
 });
 
 router.get('/:slug_or_id/details', async (req, res) => {
