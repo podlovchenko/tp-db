@@ -22,7 +22,6 @@ router.post('/:slug_or_id/create', async (req, res) => {
         flag = true;
         await db.one(`SELECT * FROM postThread WHERE thread_id=$1 LIMIT 1`, thread.id);
       } catch (error) {
-        console.log(error)
         flag = false;
       }
 
@@ -42,8 +41,6 @@ router.post('/:slug_or_id/create', async (req, res) => {
           const queries = [];
 
           let id;
-          let path;
-          let parent;
 
           for (let i = 0, j = 0; i < req.body.length; i++) {
             id = Number(ids[i].nextval);
