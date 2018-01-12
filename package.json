@@ -16,7 +16,6 @@
     "cluster": "^0.7.7",
     "express": "~4.15.5",
     "live-migration": "0.0.7",
-    "os": "^0.1.1",
     "pg-promise": "^6.10.2"
   },
   "devDependencies": {
