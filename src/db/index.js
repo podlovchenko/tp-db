@@ -6,7 +6,7 @@ const options = {
 
 const pgp = require('pg-promise')(options);
 
-pgp.pg.defaults.poolSize = 40;
+pgp.pg.defaults.poolSize = 8;
 
 const connectionOptions = {
   host: 'localhost',
