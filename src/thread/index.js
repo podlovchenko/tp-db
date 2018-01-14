@@ -174,16 +174,16 @@ router.get('/:slug_or_id/posts', async (req, res) => {
             }
             break;
           case('parent_tree'):
-            let post;
+            // let post;
             let parent_tree = '';
             if (req.query.since) {
-              post = await db.one('SELECT path FROM postForum WHERE id=$1', req.query.since);
-              parent_tree = `AND post_id${sign}${post.path[0]} `;
+              // post = await db.one('SELECT path FROM postForum WHERE id=$1', req.query.since);
+              parent_tree = `AND post_id${sign}(SELECT path FROM postForum WHERE id=$2)[1] `;
             }
 
             try {
               res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 AND path[1] IN (SELECT post_id FROM postThread WHERE thread_id=$1 ${parent_tree}ORDER BY post_id${orderBy} LIMIT ${limit}) ORDER BY path${orderBy}`,
-                thread.id));
+                [thread.id, req.query.since]));
             } catch (error) {
               res.status(200).json([]);
             }
