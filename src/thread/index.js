@@ -190,7 +190,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
             break;
           default:
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY created${orderBy}, id${orderBy} LIMIT ${limit}`,
                 [thread.id, req.query.since]));
             } catch (error) {
               res.status(200).json([]);
@@ -199,7 +199,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
         }
       } else {
         try {
-          res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
+          res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY created${orderBy}, id${orderBy} LIMIT ${limit}`,
             [thread.id, req.query.since]));
         } catch (error) {
           res.status(200).json([]);
