@@ -1,3 +1,11 @@
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
 CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
 
 CREATE TABLE IF NOT EXISTS userForum (
@@ -67,7 +75,7 @@ CREATE INDEX post_thread_path ON postForum (thread, path);
 CREATE INDEX thread_post ON postThread (thread_id, post_id);
 CREATE INDEX post_thread_id ON postForum (thread, id);
 CREATE INDEX post_thread_path_1_path ON postForum (thread, (path[1]), path);
-CREATE INDEX post_id_path_1 ON postForum (id, (path[1]));
+CREATE INDEX post_id_path_1 ON postForum ((path[1]), id);
 CREATE INDEX post_thread_created_id ON postForum (thread, created, id);
 
 -- CREATE INDEX post_thread_path_1 ON postForum (thread, (path[1]));
