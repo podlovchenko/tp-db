@@ -26,8 +26,6 @@ RUN echo "synchronous_commit = off" >> /etc/postgresql/$PGVER/main/postgresql.co
 RUN echo "fsync = off" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "shared_buffers = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "effective_cache_size = 250MB" » /etc/postgresql/$PGVER/main/postgresql.conf 
-RUN echo "sort_mem = 40MB" » /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 
