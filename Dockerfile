@@ -24,10 +24,6 @@ RUN echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/$PGVER/main/pg_hba.conf
 RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "synchronous_commit = off" >> /etc/postgresql/$PGVER/main/postgresql.conf
 RUN echo "fsync = off" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "full_page_writes = off" >>  /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "shared_buffers = 256MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "wal_buffers = 3MB" >> /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "max_wal_size = 1GB" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 
