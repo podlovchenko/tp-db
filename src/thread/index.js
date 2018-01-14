@@ -182,7 +182,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
             }
 
             try {
-              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 AND path[1] IN (SELECT post_id FROM postThread WHERE thread_id=$1 ${parent_tree}ORDER BY post_id${orderBy} LIMIT ${limit}) ORDER BY path${orderBy}`,
+              res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 AND path[1] IN (SELECT post_id FROM postThread WHERE thread_id=$1 ${parent_tree}ORDER BY post_id${orderBy} LIMIT ${limit}) ORDER BY path[1]${orderBy}, id${orderBy}`,
                 thread.id));
             } catch (error) {
               res.status(200).json([]);
