@@ -156,7 +156,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
     const limit = req.query.limit || 'ALL';
     const orderBy = req.query.desc === 'true' ? ' DESC' : '';
     const sign = req.query.desc === 'true' ? '<' : '>';
-    const since = req.query.since ? `AND id${sign}${req.query.since} ` : '';
+    const since = req.query.since ? `AND id${sign}$2 ` : '';
 
     try {
       const thread = await db.one(`SELECT id FROM threadForum WHERE ${field}=$1`, req.params.slug_or_id);
@@ -191,7 +191,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
           default:
             try {
               res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
-                thread.id));
+                [thread.id, req.query.since]));
             } catch (error) {
               res.status(200).json([]);
             }
@@ -200,7 +200,7 @@ router.get('/:slug_or_id/posts', async (req, res) => {
       } else {
         try {
           res.status(200).json(await db.many(`SELECT * FROM postForum WHERE thread=$1 ${since}ORDER BY id${orderBy} LIMIT ${limit}`,
-            thread.id));
+            [thread.id, req.query.since]));
         } catch (error) {
           res.status(200).json([]);
         }
